@@ -14,7 +14,16 @@ void go_tracy_ShutdownProfiler();
 
 void go_tracy_FrameMark();
 
-go_tracy_Zone go_tracy_ZoneBegin(const char* name, const char *function, const char *file, uint32_t line);
+go_tracy_Zone go_tracy_ZoneBegin(
+    uint32_t line,
+    const char *file,
+    size_t file_len,
+    const char *function,
+    size_t function_len,
+    const char* name,
+    size_t name_len
+);
+
 uint32_t go_tracy_ZoneEnd(go_tracy_Zone zone);
 
 #ifdef __cplusplus

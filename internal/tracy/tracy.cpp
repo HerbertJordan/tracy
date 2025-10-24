@@ -14,12 +14,9 @@ void go_tracy_FrameMark() {
     ___tracy_emit_frame_mark((char*)0);
 }
 
-typedef struct  ___tracy_source_location_data TracyCZoneLocation;
-
 
 struct TracyZoneData {
     TracyZoneData* parent;
-    TracyCZoneLocation loc;
     TracyCZoneCtx ctx;
 };
 
@@ -30,27 +27,35 @@ struct TracyZoneData {
 thread_local TracyZoneData* go_tracy_zones = nullptr;
 
 go_tracy_Zone go_tracy_ZoneBegin(
-    const char* name, 
-    const char *function, 
-    const char *file, 
-    uint32_t line
+    uint32_t line,
+    const char *file,
+    size_t file_len,
+    const char *function,
+    size_t function_len,
+    const char* name,
+    size_t name_len
 ) {
     // Grow stack of tracy zones.
     TracyZoneData* data = new TracyZoneData();
     data->parent = go_tracy_zones;
     go_tracy_zones = data;
 
-    // Fill in zone data.
-    data->ctx = TracyCZoneCtx {};
-    data->loc = TracyCZoneLocation {};
-    data->loc.name = name;
-    data->loc.function = function;
-    data->loc.file = file;
-    data->loc.line = line;
+    // Create source location info.
+    auto loc = ___tracy_alloc_srcloc_name(
+        line,
+        file,
+        file_len,
+        function,
+        function_len,
+        name,
+        name_len,
+        0
+    );
+
 
     // Inform Tracy about the new zone.
-    data->ctx = ___tracy_emit_zone_begin( (___tracy_source_location_data*)&data->loc, 1);
-   
+    data->ctx = ___tracy_emit_zone_begin_alloc( loc, 1);
+
     return uintptr_t(data);
 }
 
@@ -59,8 +64,8 @@ uint32_t go_tracy_ZoneEnd(go_tracy_Zone zone){
     uint32_t numEnded = 0;
     while (go_tracy_zones != nullptr) {
         numEnded++;
-         auto cur = go_tracy_zones;
-        ___tracy_emit_zone_end(cur->ctx);
+        auto cur = go_tracy_zones;
+        TracyCZoneEnd(cur->ctx);
         go_tracy_zones = cur->parent;
         delete cur;
         if (uintptr_t(cur) == zone) {

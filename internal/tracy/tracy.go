@@ -29,11 +29,18 @@ func ZoneBegin(name string) Zone {
 	// Tracy requires the begin and end of a zone to be on the same OS thread.
 	runtime.LockOSThread()
 
-	pc, filename, line, _ := runtime.Caller(1)
+	pc, filename, line, _ := runtime.Caller(3)
 	funcname := runtime.FuncForPC(pc).Name()
 
-	return Zone(C.go_tracy_ZoneBegin(toCString(name), toCString(funcname),
-		toCString(filename), C.uint32_t(line)))
+	return Zone(C.go_tracy_ZoneBegin(
+		C.uint32_t(line),
+		toCString(filename),
+		C.size_t(len(filename)),
+		toCString(funcname),
+		C.size_t(len(funcname)),
+		toCString(name),
+		C.size_t(len(name)),
+	))
 }
 
 func (z Zone) End() {
